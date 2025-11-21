@@ -1,14 +1,19 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Navigate } from "react-router-dom";
+import Landing from "./Landing";
 
 const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  // Check if user is logged in
+  // const isLoggedIn = false; // Replace with actual auth check
+  // const userRole = "student"; // Replace with actual role from auth
+
+  // Redirect based on auth status
+  // if (isLoggedIn) {
+  //   if (userRole === "student") return <Navigate to="/student/dashboard" />;
+  //   if (userRole === "admin") return <Navigate to="/admin/dashboard" />;
+  //   if (userRole === "recruiter") return <Navigate to="/recruiter/reports" />;
+  // }
+
+  return <Landing />;
 };
 
 export default Index;
