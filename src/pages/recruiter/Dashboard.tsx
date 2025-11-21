@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Briefcase, UserCheck, UserX } from "lucide-react";
+import { Briefcase, UserCheck, UserX, FileSpreadsheet } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 
 const RecruiterDashboard = () => {
   const [applications, setApplications] = useState<any[]>([]);
@@ -17,6 +18,7 @@ const RecruiterDashboard = () => {
   const [error, setError] = useState("");
   const [jobModalOpen, setJobModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [jobForm, setJobForm] = useState({
     title: "",
     description: "",
@@ -25,6 +27,9 @@ const RecruiterDashboard = () => {
     minGpa: "",
     department: "",
     skills: "",
+    role: "",
+    package: "",
+    companyName: "",
   });
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -63,6 +68,9 @@ const RecruiterDashboard = () => {
       minGpa: job.minGpa || "",
       department: job.department || "",
       skills: job.skills ? job.skills.join(", ") : "",
+      role: job.role || "",
+      package: job.package || "",
+      companyName: job.companyName || "",
     } : {
       title: "",
       description: "",
@@ -71,6 +79,9 @@ const RecruiterDashboard = () => {
       minGpa: "",
       department: "",
       skills: "",
+      role: "",
+      package: "",
+      companyName: "",
     });
     setJobModalOpen(true);
   };
@@ -128,6 +139,29 @@ const RecruiterDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
+  };
+
+  const handleExportExcel = () => {
+    if (applications.length === 0) {
+      toast({ title: "No applications to export", variant: "destructive" });
+      return;
+    }
+
+    const dataToExport = applications.map(app => ({
+      "Student Name": app.student?.name || "N/A",
+      "Roll Number": app.student?.rollNumber || "N/A",
+      "Branch": app.student?.department || "N/A",
+      "CGPA": app.student?.gpa || "N/A",
+      "Job Title": app.position || "N/A",
+      "Application Status": app.status || "N/A",
+      "Applied Date": app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "N/A"
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
+    XLSX.writeFile(workbook, "applications_data.xlsx");
+    toast({ title: "Exported to Excel successfully" });
   };
 
   if (loading) {
@@ -205,7 +239,13 @@ const RecruiterDashboard = () => {
           </DialogContent>
         </Dialog>
         <Card className="p-6 mb-8 mt-8">
-          <h2 className="text-xl font-semibold mb-4">Applications Received</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Applications Received</h2>
+            <Button onClick={handleExportExcel} variant="outline" className="flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4" />
+              Export to Excel
+            </Button>
+          </div>
           {applications.length === 0 ? (
             <div className="text-muted-foreground">No applications yet.</div>
           ) : (
@@ -218,23 +258,118 @@ const RecruiterDashboard = () => {
                     <span className="text-muted-foreground text-sm">at {app.company?.name || "Company"}</span>
                   </div>
                   <div className="flex flex-wrap gap-4 items-center text-sm mb-1">
-                    <span>Student: <b>{app.student?.name}</b> ({app.student?.email})</span>
+                    <span
+                      className="cursor-pointer hover:underline text-primary font-medium"
+                      onClick={() => setSelectedStudent(app.student)}
+                    >
+                      Student: {app.student?.name} ({app.student?.email})
+                    </span>
                     <span>Applied: {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "-"}</span>
                     <span>Status: <b>{app.status}</b></span>
                   </div>
                   {app.additionalInfo && (
                     <div className="text-xs text-muted-foreground mb-1">Info: {app.additionalInfo}</div>
                   )}
-                  {app.resumeUrl && (
-                    <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Resume</a>
-                  )}
+                  {/* Resume link removed here as it is in the modal now */}
                 </div>
               ))}
             </div>
           )}
         </Card>
+
+
+        {/* Candidate Details Modal */}
+        <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Candidate Profile</DialogTitle>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
+                    {selectedStudent.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">{selectedStudent.name}</h3>
+                    <p className="text-muted-foreground">{selectedStudent.email}</p>
+                    <p className="text-sm text-muted-foreground">{selectedStudent.phone} | {selectedStudent.department}</p>
+                  </div>
+                </div>
+
+                {/* Resume Link */}
+                {selectedStudent.resumeLink && (
+                  <div className="p-4 bg-muted rounded-lg flex items-center justify-between">
+                    <span className="font-medium">Resume</span>
+                    <a href={selectedStudent.resumeLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-2">
+                      View Resume <Briefcase className="w-4 h-4" />
+                    </a>
+                  </div>
+                )}
+
+                {/* Academic */}
+                <div>
+                  <h4 className="font-semibold mb-2 border-b pb-1">Academic Details</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><span className="text-muted-foreground">GPA:</span> {selectedStudent.gpa}</div>
+                    <div><span className="text-muted-foreground">Semester:</span> {selectedStudent.semester}</div>
+                    <div><span className="text-muted-foreground">Roll No:</span> {selectedStudent.rollNumber}</div>
+                    <div><span className="text-muted-foreground">Backlogs:</span> {selectedStudent.activeBacklogs}</div>
+                  </div>
+                </div>
+
+                {/* Skills */}
+                {selectedStudent.skills?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 border-b pb-1">Skills</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedStudent.skills.map((skill: string) => (
+                        <span key={skill} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Projects */}
+                {selectedStudent.projects?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 border-b pb-1">Projects</h4>
+                    <div className="space-y-3">
+                      {selectedStudent.projects.map((proj: any, i: number) => (
+                        <div key={i} className="text-sm">
+                          <div className="font-medium">{proj.title}</div>
+                          <div className="text-muted-foreground">{proj.description}</div>
+                          {proj.link && <a href={proj.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">View Project</a>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certifications */}
+                {selectedStudent.certifications?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 border-b pb-1">Certifications</h4>
+                    <div className="space-y-2">
+                      {selectedStudent.certifications.map((cert: any, i: number) => (
+                        <div key={i} className="text-sm flex justify-between">
+                          <div>
+                            <div className="font-medium">{cert.name}</div>
+                            <div className="text-xs text-muted-foreground">{cert.issuer}</div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{cert.date}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -66,9 +66,7 @@ const StudentProfile = () => {
     preferredLocations: [] as string[],
 
     // Resume
-    resumeFile: null as File | null,
-    resumeFileName: "",
-    resumeUrl: "",
+    resumeLink: "",
   });
 
   const [projects, setProjects] = useState<Project[]>([
@@ -120,8 +118,8 @@ const StudentProfile = () => {
             skills: student.skills || prev.skills,
             preferredRoles: student.preferredRoles || prev.preferredRoles,
             preferredLocations: student.preferredLocations || prev.preferredLocations,
-            resumeUrl: student.resumeUrl || prev.resumeUrl,
-            resumeFileName: student.resumeFileName || prev.resumeFileName,
+            preferredLocations: student.preferredLocations || prev.preferredLocations,
+            resumeLink: student.resumeLink || prev.resumeLink,
           }));
           if (Array.isArray(student.projects) && student.projects.length) setProjects(student.projects);
           if (Array.isArray(student.certifications) && student.certifications.length) setCertifications(student.certifications);
@@ -202,8 +200,9 @@ const StudentProfile = () => {
         preferredLocations: formData.preferredLocations,
         projects,
         certifications,
-        resumeUrl,
-        resumeFileName: formData.resumeFileName,
+        projects,
+        certifications,
+        resumeLink: formData.resumeLink,
       };
 
       // 3) Save profile
@@ -566,19 +565,15 @@ const StudentProfile = () => {
               </div>
 
               <div className="mt-6">
-                <Label>Resume *</Label>
-                <FileUpload
-                  onFileSelect={(file) =>
-                    setFormData({
-                      ...formData,
-                      resumeFile: file,
-                      resumeFileName: file.name,
-                    })
+                <Label htmlFor="resumeLink">Resume Link (Google Drive/Dropbox) *</Label>
+                <Input
+                  id="resumeLink"
+                  type="url"
+                  value={formData.resumeLink}
+                  onChange={(e) =>
+                    setFormData({ ...formData, resumeLink: e.target.value })
                   }
-                  currentFile={formData.resumeFileName}
-                  onRemove={() =>
-                    setFormData({ ...formData, resumeFile: null, resumeFileName: "" })
-                  }
+                  placeholder="https://drive.google.com/..."
                   className="mt-1"
                 />
               </div>

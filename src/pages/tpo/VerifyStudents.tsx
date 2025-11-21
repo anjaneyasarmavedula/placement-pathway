@@ -38,7 +38,7 @@ const VerifyStudents = () => {
       await axios.post(`${baseUrl}/tpo/verify-student/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setStudents(students => students.map(s => s._id === id ? { ...s, verified: true } : s));
+      setStudents(students => students.map(s => s._id === id ? { ...s, isverified: true } : s));
       toast({ title: "Student verified" });
     } catch (err: any) {
       toast({ title: "Error", description: err?.response?.data?.message || "Failed to verify student", variant: "destructive" });
@@ -63,9 +63,9 @@ const VerifyStudents = () => {
                   <div>
                     <div className="font-semibold">{student.name}</div>
                     <div className="text-sm text-muted-foreground">{student.email}</div>
-                    <div className="text-xs">Verified: {student.verified ? "Yes" : "No"}</div>
+                    <div className="text-xs">Verified: {student.isverified ? "Yes" : "No"}</div>
                   </div>
-                  {!student.verified && (
+                  {!student.isverified && (
                     <Button size="sm" onClick={() => handleVerify(student._id)}>Verify</Button>
                   )}
                 </div>

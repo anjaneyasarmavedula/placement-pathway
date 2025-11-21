@@ -48,16 +48,22 @@ const Opportunities = () => {
 			const token = localStorage.getItem("token");
 			const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
 			// Fix: get companyId and position from DB fields
-			const companyId = selectedOpp.company?._id || selectedOpp.company || selectedOpp.companyId;
+			const companyId = selectedOpp.company?._id || (typeof selectedOpp.company === 'string' ? selectedOpp.company : undefined) || selectedOpp.companyId;
 			const position = selectedOpp.role || selectedOpp.title || selectedOpp.position;
+
+			const payload: any = {
+				opportunityId: selectedOpp._id,
+				position,
+				additionalInfo: data.additionalInfo,
+			};
+
+			if (companyId) {
+				payload.companyId = companyId;
+			}
+
 			await axios.post(
 				`${baseUrl}/student/apply`,
-				{
-					opportunityId: selectedOpp._id,
-					companyId,
-					position,
-					additionalInfo: data.additionalInfo,
-				},
+				payload,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			toast({

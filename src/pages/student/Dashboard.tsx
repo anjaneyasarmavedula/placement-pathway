@@ -191,12 +191,12 @@ const StudentDashboard = () => {
                     Edit Profile
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
+                {/* <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/student/resume">
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Resume
                   </Link>
-                </Button>
+                </Button> */}
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/student/opportunities">
                     <Briefcase className="w-4 h-4 mr-2" />
