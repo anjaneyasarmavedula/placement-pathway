@@ -1,10 +1,17 @@
 /**
- * Student Profile Form
- * Accessibility: Full form labels, ARIA attributes, keyboard navigation
- * Features: Auto-save draft, preview mode, comprehensive profile fields
+ * StudentProfile (updated to call backend)
+ *
+ * Expects:
+ *  - GET  /api/student/profile      -> returns { student }
+ *  - POST /api/student/profile/upload -> multipart form-data upload (field: file) returns { url, fileName }
+ *  - POST /api/student/profile      -> accepts profile JSON and returns updated student
+ *
+ * Authorization:
+ *  - Uses token from localStorage.getItem('token') (Authorization: Bearer <token>)
  */
 
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +68,7 @@ const StudentProfile = () => {
     // Resume
     resumeFile: null as File | null,
     resumeFileName: "",
+    resumeUrl: "",
   });
 
   const [projects, setProjects] = useState<Project[]>([
@@ -71,15 +79,57 @@ const StudentProfile = () => {
     { id: "1", name: "", issuer: "", date: "" },
   ]);
 
-  // Auto-save to localStorage
+  // Auto-save to localStorage + load draft / remote profile
   useEffect(() => {
     const savedData = localStorage.getItem("studentProfileDraft");
     if (savedData) {
-      const parsed = JSON.parse(savedData);
-      setFormData(parsed.formData || formData);
-      setProjects(parsed.projects || projects);
-      setCertifications(parsed.certifications || certifications);
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.formData) setFormData((prev) => ({ ...prev, ...parsed.formData }));
+        if (parsed.projects) setProjects(parsed.projects);
+        if (parsed.certifications) setCertifications(parsed.certifications);
+      } catch (err) {
+        console.warn("Failed to parse studentProfileDraft", err);
+      }
     }
+
+    // fetch remote profile if token exists
+    (async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+        const res = await axios.get(`${baseUrl}/student/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 8000,
+        });
+        const student = res.data?.student;
+        if (student) {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: student.name || prev.fullName,
+            email: student.email || prev.email,
+            phone: student.phone || prev.phone,
+            department: student.department || prev.department,
+            rollNumber: student.rollNumber || prev.rollNumber,
+            semester: student.semester || prev.semester,
+            gpa: student.gpa || prev.gpa,
+            tenthPercent: student.tenthPercent || prev.tenthPercent,
+            twelfthPercent: student.twelfthPercent || prev.twelfthPercent,
+            activeBacklogs: student.activeBacklogs || prev.activeBacklogs,
+            skills: student.skills || prev.skills,
+            preferredRoles: student.preferredRoles || prev.preferredRoles,
+            preferredLocations: student.preferredLocations || prev.preferredLocations,
+            resumeUrl: student.resumeUrl || prev.resumeUrl,
+            resumeFileName: student.resumeFileName || prev.resumeFileName,
+          }));
+          if (Array.isArray(student.projects) && student.projects.length) setProjects(student.projects);
+          if (Array.isArray(student.certifications) && student.certifications.length) setCertifications(student.certifications);
+        }
+      } catch (err) {
+        // ignore fetch errors
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -93,17 +143,90 @@ const StudentProfile = () => {
     return () => clearTimeout(timer);
   }, [formData, projects, certifications]);
 
+  // Upload resume file (returns url or null)
+  const uploadResumeIfNeeded = async (file: File | null) => {
+    if (!file) return null;
+    const token = localStorage.getItem("token");
+    const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await axios.post(`${baseUrl}/student/profile/upload`, form, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 20000,
+      });
+      return res.data?.url || null;
+    } catch (err) {
+      console.warn("Resume upload failed:", err);
+      return null;
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // TODO: Replace with actual API call
-      // await axios.post(`${import.meta.env.VITE_BACKEND_URL}/student/profile`, {
-      //   ...formData,
-      //   projects,
-      //   certifications,
-      // });
+      const token = localStorage.getItem("token");
+      const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 1) Upload resume if provided
+      let resumeUrl = formData.resumeUrl || "";
+      if (formData.resumeFile) {
+        const uploadedUrl = await uploadResumeIfNeeded(formData.resumeFile);
+        if (uploadedUrl) {
+          resumeUrl = uploadedUrl;
+        } else {
+          toast({
+            title: "Resume upload failed",
+            description: "Profile will be saved without resume. Try again later.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      // 2) Build payload for backend
+      const payload = {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        department: formData.department,
+        rollNumber: formData.rollNumber,
+        semester: formData.semester,
+        gpa: formData.gpa,
+        tenthPercent: formData.tenthPercent,
+        twelfthPercent: formData.twelfthPercent,
+        activeBacklogs: formData.activeBacklogs,
+        skills: formData.skills,
+        preferredRoles: formData.preferredRoles,
+        preferredLocations: formData.preferredLocations,
+        projects,
+        certifications,
+        resumeUrl,
+        resumeFileName: formData.resumeFileName,
+      };
+
+      // 3) Save profile
+      const res = await axios.post(`${baseUrl}/student/profile`, payload, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      });
+
+      const saved = res.data?.student;
+      if (saved) {
+        setFormData((prev) => ({
+          ...prev,
+          fullName: saved.name || prev.fullName,
+          email: saved.email || prev.email,
+          resumeUrl: saved.resumeUrl || prev.resumeUrl,
+          resumeFileName: saved.resumeFileName || prev.resumeFileName,
+        }));
+        if (Array.isArray(saved.projects)) setProjects(saved.projects);
+        if (Array.isArray(saved.certifications)) setCertifications(saved.certifications);
+      }
 
       toast({
         title: "Profile Saved",
@@ -111,10 +234,11 @@ const StudentProfile = () => {
       });
 
       localStorage.removeItem("studentProfileDraft");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Save profile error:", error);
       toast({
         title: "Save Failed",
-        description: "Failed to save profile. Please try again.",
+        description: error?.response?.data?.message || "Failed to save profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -274,11 +398,10 @@ const StudentProfile = () => {
         </div>
 
         <Tabs defaultValue="personal" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="academic">Academic</TabsTrigger>
             <TabsTrigger value="experience">Experience</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
           </TabsList>
 
           {/* Personal Info */}
@@ -609,48 +732,6 @@ const StudentProfile = () => {
                 </div>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Preferences */}
-          <TabsContent value="preferences">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-6">Career Preferences</h2>
-              <div className="space-y-6">
-                <div>
-                  <Label>Technical Skills</Label>
-                  <TagInput
-                    tags={formData.skills}
-                    onTagsChange={(tags) => setFormData({ ...formData, skills: tags })}
-                    placeholder="Add skill (e.g., React, Python)"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>Preferred Roles</Label>
-                  <TagInput
-                    tags={formData.preferredRoles}
-                    onTagsChange={(tags) =>
-                      setFormData({ ...formData, preferredRoles: tags })
-                    }
-                    placeholder="Add role (e.g., Software Engineer)"
-                    maxTags={10}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>Preferred Locations</Label>
-                  <TagInput
-                    tags={formData.preferredLocations}
-                    onTagsChange={(tags) =>
-                      setFormData({ ...formData, preferredLocations: tags })
-                    }
-                    placeholder="Add location (e.g., Bangalore)"
-                    maxTags={10}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>

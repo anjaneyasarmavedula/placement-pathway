@@ -11,6 +11,13 @@ import StudentProfile from "./pages/student/Profile";
 import AdminDashboard from "./pages/admin/Dashboard";
 import RecruiterReports from "./pages/recruiter/Reports";
 import NotFound from "./pages/NotFound";
+import Opportunities from "./pages/student/Opportunities";
+import Logout from "./pages/Logout";
+import TPLogin from "./pages/tpo/Login";
+import VerifyStudents from "./pages/tpo/VerifyStudents";
+import RecruiterDashboard from "./pages/recruiter/Dashboard";
+import TPORegister from "./pages/tpo/Register";
+import TPODashboard from "./pages/tpo/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +35,13 @@ const App = () => (
           <Route path="/student/profile" element={<StudentProfile />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/recruiter/reports" element={<RecruiterReports />} />
+          <Route path="/student/opportunities" element={<Opportunities />} />
+          <Route path="/logout" element={<Logout />} />
+          <Route path="/tpo/login" element={<TPLogin />} />
+          <Route path="/tpo/verify-students" element={<VerifyStudents />} />
+          <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+          <Route path="/tpo/register" element={<TPORegister />} />
+          <Route path="/tpo/dashboard" element={<TPODashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

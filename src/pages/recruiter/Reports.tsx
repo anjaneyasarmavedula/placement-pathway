@@ -4,7 +4,7 @@
  * Features: Read-only student profiles, filtering, interview requests
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Search, Download, Mail, Eye, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
 interface Student {
   id: string;
@@ -63,51 +64,26 @@ const RecruiterReports = () => {
     skills: "",
   });
 
-  // Mock student data (verified students only)
-  const students: Student[] = [
-    {
-      id: "1",
-      name: "Rajesh Kumar",
-      email: "rajesh@jntugv.edu.in",
-      phone: "+91 9876543210",
-      department: "CSE",
-      gpa: 8.5,
-      semester: 7,
-      skills: ["React", "Node.js", "Python", "MongoDB", "AWS"],
-      projects: [
-        {
-          title: "E-commerce Platform",
-          description:
-            "Built a full-stack e-commerce platform with React and Node.js",
-        },
-        {
-          title: "Real-time Chat App",
-          description: "Developed a real-time messaging app using Socket.io",
-        },
-      ],
-      preferredRoles: ["Software Engineer", "Full Stack Developer"],
-      preferredLocations: ["Bangalore", "Hyderabad", "Pune"],
-    },
-    {
-      id: "3",
-      name: "Amit Patel",
-      email: "amit@jntugv.edu.in",
-      phone: "+91 9876543212",
-      department: "CSE",
-      gpa: 9.1,
-      semester: 8,
-      skills: ["Java", "Spring Boot", "AWS", "Docker", "Kubernetes"],
-      projects: [
-        {
-          title: "Microservices Architecture",
-          description:
-            "Designed and implemented microservices using Spring Boot",
-        },
-      ],
-      preferredRoles: ["Backend Engineer", "DevOps Engineer"],
-      preferredLocations: ["Bangalore", "Mumbai"],
-    },
-  ];
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+        const res = await axios.get(`${baseUrl}/students/verified`);
+        setStudents(res.data.students || []);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "Failed to load students");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
 
   const filteredStudents = students.filter((student) => {
     if (filters.department !== "all" && student.department !== filters.department)

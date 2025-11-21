@@ -1,11 +1,10 @@
 /**
- * Signup Page
- * Accessibility: Form labels, error messages, keyboard navigation
- * Validation: Client-side form validation with error feedback
+ * Signup Page (updated to call backend)
  */
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,24 +66,48 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/signup`, formData);
-      
-      // Mock success
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Account Created",
-        description: "Your account has been created successfully. Redirecting...",
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        type: formData.role, // backend only accepts 'student' for now
+      };
+
+      const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+      const response = await axios.post(`${baseUrl}/register`, payload, {
+        headers: { "Content-Type": "application/json" },
+        timeout: 10000,
       });
 
-      navigate("/login");
-    } catch (error) {
+      // success
+      toast({
+        title: "Account Created",
+        description: "Your account has been created successfully. Redirecting to login...",
+      });
+
+      // optional: you can inspect response.data for the created student
+      // const created = response.data.student;
+
+      setTimeout(() => navigate("/login"), 1000);
+    } catch (err: any) {
+      // Error handling: prefer backend message when available
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (err?.response && `Server returned ${err.response.status}`) ||
+        err.message ||
+        "An error occurred";
+
       toast({
         title: "Signup Failed",
-        description: "An error occurred. Please try again.",
+        description: serverMessage,
         variant: "destructive",
       });
+
+      // map some server validation errors to form (optional)
+      if (err?.response?.status === 409) {
+        setErrors((prev) => ({ ...prev, email: "Email already registered" }));
+      }
     } finally {
       setIsLoading(false);
     }

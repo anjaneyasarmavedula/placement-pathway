@@ -19,43 +19,40 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 const StudentDashboard = () => {
-  // Mock data - replace with actual API data
-  const studentProfile = {
-    name: "John Doe",
-    email: "john.doe@jntugv.edu.in",
-    department: "Computer Science",
-    gpa: 8.5,
-    semester: 7,
-    profileComplete: 85,
-    isVerified: false,
-    photoUrl: null,
-  };
+  const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const applications = [
-    {
-      id: 1,
-      company: "TCS",
-      position: "Software Engineer",
-      appliedDate: "2024-01-15",
-      status: "pending",
-    },
-    {
-      id: 2,
-      company: "Infosys",
-      position: "System Engineer",
-      appliedDate: "2024-01-10",
-      status: "shortlisted",
-    },
-    {
-      id: 3,
-      company: "Wipro",
-      position: "Project Engineer",
-      appliedDate: "2024-01-05",
-      status: "rejected",
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const token = localStorage.getItem("token");
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+        // Fetch student profile
+        const profileRes = await axios.get(`${baseUrl}/student/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStudentProfile(profileRes.data.student);
+        // Fetch opportunities for eligible student
+        const oppRes = await axios.get(`${baseUrl}/opportunities`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOpportunities(oppRes.data.opportunities || []);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -69,7 +66,6 @@ const StudentDashboard = () => {
         return <AlertCircle className="w-4 h-4" />;
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -82,6 +78,24 @@ const StudentDashboard = () => {
         return "bg-muted text-muted-foreground";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <span className="text-lg">Loading dashboard...</span>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <span className="text-destructive">{error}</span>
+      </div>
+    );
+  }
+  if (!studentProfile) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,7 +113,7 @@ const StudentDashboard = () => {
         </div>
 
         {/* Profile Verification Alert */}
-        {!studentProfile.isVerified && (
+        {!studentProfile.isverified && (
           <div className="mb-6 p-4 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
             <div className="flex-1">
@@ -107,6 +121,17 @@ const StudentDashboard = () => {
               <p className="text-sm text-foreground mt-1">
                 Your profile is pending TPO verification. Complete your profile to speed
                 up the process.
+              </p>
+            </div>
+          </div>
+        )}
+        {studentProfile.isverified && (
+          <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-success mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-success">Profile Verified</h3>
+              <p className="text-sm text-foreground mt-1">
+                Your profile has been verified by the TPO. You can now apply to all opportunities.
               </p>
             </div>
           </div>
@@ -182,48 +207,38 @@ const StudentDashboard = () => {
             </Card>
           </div>
 
-          {/* Right Column - Application Timeline */}
+          {/* Right Column - Opportunities List */}
           <div className="lg:col-span-2">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">Application Timeline</h3>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/student/applications">View All</Link>
-                </Button>
+                <h3 className="text-xl font-semibold">Available Opportunities</h3>
               </div>
-
-              {applications.length > 0 ? (
+              {opportunities.length > 0 ? (
                 <div className="space-y-4">
-                  {applications.map((app) => (
+                  {opportunities.map((opp) => (
                     <div
-                      key={app.id}
+                      key={opp._id}
                       className="flex items-start gap-4 p-4 bg-card border border-border rounded-lg hover:shadow-md transition-shadow"
                     >
                       <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                        {app.company.charAt(0)}
+                        {opp.company?.name?.charAt(0) || opp.company?.charAt(0) || "?"}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <h4 className="font-semibold text-foreground">
-                              {app.company}
+                              {opp.company?.name || opp.company}
                             </h4>
                             <p className="text-sm text-muted-foreground">
-                              {app.position}
+                              {opp.title}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Applied on {new Date(app.appliedDate).toLocaleDateString()}
+                              Location: {opp.location || "-"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Deadline: {opp.deadline ? new Date(opp.deadline).toLocaleDateString() : "-"}
                             </p>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={`flex items-center gap-1 ${getStatusColor(
-                              app.status
-                            )}`}
-                          >
-                            {getStatusIcon(app.status)}
-                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -231,54 +246,13 @@ const StudentDashboard = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h4 className="font-semibold mb-2">No Applications Yet</h4>
+                  <h4 className="font-semibold mb-2">No Opportunities Available</h4>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Start applying to opportunities to see your timeline
+                    There are currently no eligible opportunities for you.
                   </p>
-                  <Button asChild>
-                    <Link to="/student/opportunities">Browse Opportunities</Link>
-                  </Button>
                 </div>
               )}
             </Card>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <Briefcase className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">3</p>
-                    <p className="text-xs text-muted-foreground">Total Applications</p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-success/10 p-2">
-                    <CheckCircle className="w-5 h-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">1</p>
-                    <p className="text-xs text-muted-foreground">Shortlisted</p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-warning/10 p-2">
-                    <Clock className="w-5 h-5 text-warning" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">1</p>
-                    <p className="text-xs text-muted-foreground">Pending</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
           </div>
         </div>
       </div>
