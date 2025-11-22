@@ -25,7 +25,7 @@ const RecruiterDashboard = () => {
     location: "",
     deadline: "",
     minGpa: "",
-    department: "",
+    minGpa: "",
     skills: "",
     role: "",
     package: "",
@@ -66,7 +66,7 @@ const RecruiterDashboard = () => {
       location: job.location,
       deadline: job.deadline ? job.deadline.slice(0, 10) : "",
       minGpa: job.minGpa || "",
-      department: job.department || "",
+      minGpa: job.minGpa || "",
       skills: job.skills ? job.skills.join(", ") : "",
       role: job.role || "",
       package: job.package || "",
@@ -77,7 +77,7 @@ const RecruiterDashboard = () => {
       location: "",
       deadline: "",
       minGpa: "",
-      department: "",
+      minGpa: "",
       skills: "",
       role: "",
       package: "",
@@ -193,7 +193,7 @@ const RecruiterDashboard = () => {
                     <div className="font-semibold text-lg">{job.title}</div>
                     <div className="text-sm text-muted-foreground mb-1">{job.location} | Deadline: {job.deadline ? new Date(job.deadline).toLocaleDateString() : "-"}</div>
                     <div className="text-xs text-muted-foreground mb-1">Role: {job.role || "-"} | Package: {job.package || "-"} | Company: {job.companyName || job.company?.name || "-"}</div>
-                    <div className="text-xs text-muted-foreground mb-1">Min GPA: {job.minGpa || "-"} | Dept: {job.department || "-"} | Skills: {job.skills?.join(", ") || "-"}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Min GPA: {job.minGpa || "-"} | Skills: {job.skills?.join(", ") || "-"}</div>
                     <div className="text-sm mb-1">{job.description}</div>
                   </div>
                   <div className="flex gap-2">
@@ -219,17 +219,6 @@ const RecruiterDashboard = () => {
               <Input name="location" placeholder="Location" value={jobForm.location} onChange={handleJobFormChange} />
               <Input name="deadline" type="date" placeholder="Deadline" value={jobForm.deadline} onChange={handleJobFormChange} />
               <Input name="minGpa" type="number" step="0.1" placeholder="Min GPA" value={jobForm.minGpa} onChange={handleJobFormChange} />
-              <Select value={jobForm.department} onValueChange={val => setJobForm(f => ({ ...f, department: val }))}>
-                <SelectTrigger><SelectValue placeholder="Department" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  <SelectItem value="CSE">CSE</SelectItem>
-                  <SelectItem value="ECE">ECE</SelectItem>
-                  <SelectItem value="EEE">EEE</SelectItem>
-                  <SelectItem value="MECH">MECH</SelectItem>
-                  <SelectItem value="CIVIL">CIVIL</SelectItem>
-                </SelectContent>
-              </Select>
               <Input name="skills" placeholder="Skills (comma separated)" value={jobForm.skills} onChange={handleJobFormChange} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setJobModalOpen(false)}>Cancel</Button>

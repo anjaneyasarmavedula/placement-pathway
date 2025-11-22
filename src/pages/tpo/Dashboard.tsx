@@ -25,7 +25,7 @@ const TPODashboard = () => {
     location: "",
     deadline: "",
     minGpa: "",
-    department: "",
+    minGpa: "",
     skills: "",
     role: "",
     package: "",
@@ -85,7 +85,7 @@ const TPODashboard = () => {
         location: "",
         deadline: "",
         minGpa: "",
-        department: "",
+        minGpa: "",
         skills: "",
         role: "",
         package: "",
@@ -244,17 +244,6 @@ const TPODashboard = () => {
               <Input name="location" placeholder="Location" value={jobForm.location} onChange={handleJobFormChange} />
               <Input name="deadline" type="date" placeholder="Deadline" value={jobForm.deadline} onChange={handleJobFormChange} />
               <Input name="minGpa" type="number" step="0.1" placeholder="Min GPA" value={jobForm.minGpa} onChange={handleJobFormChange} />
-              <Select value={jobForm.department} onValueChange={val => setJobForm(f => ({ ...f, department: val }))}>
-                <SelectTrigger><SelectValue placeholder="Department" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  <SelectItem value="CSE">CSE</SelectItem>
-                  <SelectItem value="ECE">ECE</SelectItem>
-                  <SelectItem value="EEE">EEE</SelectItem>
-                  <SelectItem value="MECH">MECH</SelectItem>
-                  <SelectItem value="CIVIL">CIVIL</SelectItem>
-                </SelectContent>
-              </Select>
               <Input name="skills" placeholder="Skills (comma separated)" value={jobForm.skills} onChange={handleJobFormChange} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setJobModalOpen(false)}>Cancel</Button>
